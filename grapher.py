@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 import cv2
 import os
+import sys
 
 
 # for making adjacency matrix
 import networkx as nx
 
-
+np.set_printoptions(threshold=sys.maxsize)
 class ObjectTree:	
 	'''
 		Description:
@@ -133,6 +134,7 @@ class ObjectTree:
 			################ iterate over destination objects #################
 			for dest_idx, dest_row in df.iterrows():
 				# flag to signal whether the destination object is below source
+				
 				is_beneath = False
 				if not src_idx == dest_idx:
 					# ==================== vertical ==========================#
@@ -339,7 +341,7 @@ class ObjectTree:
 
 		# ==================== vertical ===================================== #
 		# create df for plotting lines
-		df['below_object'] = df.loc[nearest_dest_ids_vert, 'Object'].values
+		df['below_object'] = df.loc[nearest_dest_ids_vert, 'Object'].values  
 
 		# add distances column
 		df['below_dist'] = distances
@@ -509,12 +511,22 @@ class ObjectTree:
 		graph_dict = {}
 		for src_id, row in df.iterrows():
 			if row['below_obj_index'] != -1:
-				graph_dict[src_id] = [row['below_obj_index']]
+				if src_id in graph_dict.keys():
+					graph_dict[src_id].append(row['below_obj_index'])
+				else:
+					graph_dict[src_id] = [row['below_obj_index']]
+
 			if row['side_obj_index'] != -1:
-				graph_dict[src_id] = [row['side_obj_index']]
+				if src_id in graph_dict.keys():
+					graph_dict[src_id].append(row['side_obj_index'])
+				else:
+					graph_dict[src_id] = [row['side_obj_index']]
 			
 		
-		return graph_dict, df['Object'].tolist()
+		return graph_dict, df['Object'].tolist(), df[['xmin',
+														'ymin', 
+														'xmax', 
+														'ymax']].values
 
 
 class Graph:
@@ -523,6 +535,7 @@ class Graph:
 	'''
 	def __init__(self, max_nodes=50):
 		self.max_nodes = max_nodes
+		self.image = None
 		return
 
 	# def make_graph(self, graph_dict):
@@ -546,87 +559,87 @@ class Graph:
 
 	# 	return G
 
-	def _get_text_features(self, data): 
-    
+	def _get_text_features(self, data):
+
 		'''
 			Args:
 				str, input data
 				
 			Returns: 
-				np.array, shape=(22,);
+				np.array, shape=(35,);
 				an array of the text converted to features
 				
 		'''
-		
 		assert type(data) == str, f'Expected type {str}. Received {type(data)}.'
 
-		n_upper = 0
+		data = r'{}'.format(data)
+
 		n_lower = 0
-		n_alpha = 0
+		n_upper = 0
 		n_digits = 0
-		n_spaces = 0
-		n_numeric = 0
-		n_special = 0
-		number = 0
-		special_chars = {'&': 0, '@': 1, '#': 2, '(': 3, ')': 4, '-': 5, '+': 6, 
-						'=': 7, '*': 8, '%': 9, '.':10, ',': 11, '\\': 12,'/': 13, 
-						'|': 14, ':': 15}
-		
-		special_chars_arr = np.zeros(shape=len(special_chars))    
-		
-		# character wise
-		for char in data: 
-			
-			# for lower letters 
-			if char.islower(): 
+
+		# make a mapping dict of special characters
+		mapping_dict = {
+			'-': 0, 
+			'.': 1, 
+			',': 2, 
+			'/': 3, 
+			'\\': 4,
+			':': 5
+		}
+		initial_len_mapping_dict = len(mapping_dict)
+		# add the alphabet as the keys to the mapping dict
+		for idx, char in enumerate('abcedfghijklmnopqrstuvwxyz'):
+			mapping_dict[char] = idx + initial_len_mapping_dict
+
+		# get number of lower and upper case letters
+		for char in data:
+			if char.islower():
 				n_lower += 1
-	
-			# for upper letters 
-			if char.isupper(): 
+			
+			if char.isupper():
 				n_upper += 1
-			
-			# for white spaces
-			if char.isspace():
-				n_spaces += 1
-			
-			# for alphabetic chars
-			if char.isalpha():
-				n_alpha += 1
-			
-			# for numeric chars
-			if char.isnumeric():
-				n_numeric += 1
-			
-			# array for special chars
-			if char in special_chars.keys():
-				char_idx = special_chars[char]
-				# put 1 at index
-				special_chars_arr[char_idx] += 1
-				
-		# word wise
-		for word in data.split():
-			
-			# if digit is integer 
-			try:
-				number = int(word)
+
+			if char.isdigit():
 				n_digits += 1
-			except:
+
+		# concat to form the vector in form:
+		# | 0-29: character mapping | n_lower | n_upper | n_digits |
+
+		vector_arr = np.zeros(35)
+		for char in data.lower():
+			if char in mapping_dict.keys():
+				vector_arr[mapping_dict[char]] += 1
+			else:
 				pass
 
-			# if digit is float
-			if n_digits == 0:
-				try:
-					number = float(word)
-					n_digits += 1
-				except:
-					pass
-		
-		features = []
-		features.append([n_lower, n_upper, n_spaces, n_alpha, n_numeric, n_digits])
-		features = np.array(features)
-		features = np.append(features, np.array(special_chars_arr))
-		
-		return features
+		vector_arr[32] = n_lower
+		vector_arr[33] = n_upper
+		vector_arr[34] = n_digits
+
+		return vector_arr
+
+	def _get_positional_embeddings(self, coordinate_arr):
+		'''
+		This method returns the normalized array of coordinates as per the shape
+		of the image
+
+		Args:
+			coordinate_arr: [`xmin`, `ymin`, `xmax`, `ymax`]
+
+		Returns:
+			Normalized coordinate array
+		'''
+		image_height, image_width = self.image.shape
+
+		normalized_coordinate_list = []
+
+		normalized_coordinate_list.append(coordinate_arr[0]/image_width)
+		normalized_coordinate_list.append(coordinate_arr[1]/image_height)
+		normalized_coordinate_list.append(coordinate_arr[2]/image_width)
+		normalized_coordinate_list.append(coordinate_arr[3]/image_height)
+
+		return np.array(normalized_coordinate_list)
 
 	def _pad_adj(self, adj):
 		'''
@@ -679,7 +692,7 @@ class Graph:
 		return target
 
 
-	def make_graph_data(self, graph_dict, text_list):
+	def make_graph_data(self, graph_dict, text_list, coords_arr, img):
 		'''
 			Function to make an adjacency matrix from a networkx graph object
 			as well as padded feature matrix
@@ -690,23 +703,41 @@ class Graph:
 				text_list: list,
 							of text entities:
 							['Tax Invoice', '1/2/2019', ...]
+				
+				coords_arr: np.array, of coordinates for each node
+
+				img: cv2 image of the document
 
 			Returns:
 				A: Adjacency matrix as np.array
 
 				X: Feature matrix as numpy array for input graph
 		'''
+		self.image = img
+		
 		G = nx.from_dict_of_lists(graph_dict)
 		adj_sparse = nx.adjacency_matrix(G)
 
 		# preprocess the sparse adjacency matrix returned by networkx function
 		A = np.array(adj_sparse.todense())
-		A = self._pad_adj(A)
+		
+		# NOTE: this was removed so as to not pad the adjacency matrix
+		# A = self._pad_adj(A)
 
 		# preprocess the list of text entities
 		feat_list = list(map(self._get_text_features, text_list))
 		feat_arr = np.array(feat_list)
-		X = self._pad_text_features(feat_arr)
+		
+		# get positional embeddings
+		pos_list = list(map(self._get_positional_embeddings, coords_arr))
+		pos_arr = np.array(pos_list)
+
+		# concatenate positional features with text features
+		feat_arr = np.concatenate((pos_arr, feat_arr), axis=1)
+
+		# NOTE: this was removed so as to not pad the feature matrix
+		X = feat_arr
+		# X = self._pad_text_features(X)
 
 		return A, X
 
@@ -716,21 +747,25 @@ class Graph:
 
 if __name__ == "__main__":
 	print(os.getcwd())
-	df = pd.read_csv('/mnt/data/Workarea/dhaval/visibilty_based_graph/grapher_test/draw_test1/object_map.csv')
-	img = cv2.imread('/mnt/data/Workarea/dhaval/visibilty_based_graph/grapher_test/draw_test1/deskew.jpg', 0)
+	df = pd.read_csv(r'C:\Users\Think Analytics\Desktop\Side_Projects\graph_test\object_map.csv')
+	img = cv2.imread(r'C:\Users\Think Analytics\Desktop\Side_Projects\graph_test\deskew.jpg', 0)
 	
 	tree = ObjectTree()
 	tree.read(df, img)
 	
-	graph_dict, text_list = tree.connect(plot=True, export_df=True)
+	graph_dict, text_list, coords_arr = tree.connect(plot=True, export_df=True)
 	
 	print(graph_dict)
 	print('\n--------------------------------------------------------------\n')
 
 	graph = Graph()
-	A, X = graph.make_graph_data(graph_dict, text_list)
+	A, X = graph.make_graph_data(graph_dict, text_list, coords_arr, img)
 	
 
 	print(A)
 	print('-----------------------------------------------------------------\n')
 	print(X)
+
+	np.save('./A.npy', A)
+	np.save('./X.npy', X)
+
