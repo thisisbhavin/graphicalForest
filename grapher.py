@@ -50,19 +50,19 @@ class ObjectTree:
 
 		assert type(object_map) == pd.DataFrame,f'object_map should be of type \
 			{pd.DataFrame}. Received {type(object_map)}'
-		assert type(image) == np.ndarray,f'image should be of type {np.ndarray} \
-			. Received {type(image)}'
+		# assert type(image) == np.ndarray,f'image should be of type {np.ndarray} \
+		# 	. Received {type(image)}'
 
 		assert 'xmin' in object_map.columns, '"xmin" not in object map'
 		assert 'xmax' in object_map.columns, '"xmax" not in object map'
 		assert 'ymin' in object_map.columns, '"ymin" not in object map'
 		assert 'ymax' in object_map.columns, '"ymax" not in object map'
 		assert 'Object' in object_map.columns, '"Object" column not in object map'
-		assert self.label_column in object_map.columns, \
-						f'"{self.label_column}" does not exist in the object map'
+		# assert self.label_column in object_map.columns, \
+		# 				f'"{self.label_column}" does not exist in the object map'
 
 		# check if image is greyscale
-		assert image.ndim == 2, 'Check if the read image is greyscale.'
+		# assert image.ndim == 2, 'Check if the read image is greyscale.'
 
 		# drop unneeded columns
 		required_cols = {'xmin', 'xmax', 'ymin', 'ymax', 'Object', 
@@ -403,6 +403,9 @@ class ObjectTree:
 		rev_x_src_hori, rev_y_src_hori, rev_x_dest_hori, rev_y_dest_hori = \
 																[], [], [], []
 		
+		# NOTE: added fillna because of Nans coming up in `below/side_obj_index`
+		# df_merged.fillna(-1, inplace=True)
+
 		for idx, row in df_merged.iterrows():
 			below_idx = row['below_obj_index']
 			side_idx = row['side_obj_index']
@@ -630,7 +633,7 @@ class Graph:
 		Returns:
 			Normalized coordinate array
 		'''
-		image_height, image_width = self.image.shape
+		image_height, image_width = self.img_dims
 
 		normalized_coordinate_list = []
 
@@ -692,28 +695,28 @@ class Graph:
 		return target
 
 
-	def make_graph_data(self, graph_dict, text_list, coords_arr, img):
+	def make_graph_data(self, graph_dict, text_list, coords_arr, img_dims):
 		'''
-			Function to make an adjacency matrix from a networkx graph object
-			as well as padded feature matrix
+		Function to make an adjacency matrix from a networkx graph object
+		as well as padded feature matrix
 
-			Args:
-				G: networkx graph object
-				
-				text_list: list,
-							of text entities:
-							['Tax Invoice', '1/2/2019', ...]
-				
-				coords_arr: np.array, of coordinates for each node
+		Args:
+			G: networkx graph object
+			
+			text_list: list,
+						of text entities:
+						['Tax Invoice', '1/2/2019', ...]
+			
+			coords_arr: np.array, of coordinates for each node
 
-				img: cv2 image of the document
+			img: cv2 image of the document
 
-			Returns:
-				A: Adjacency matrix as np.array
+		Returns:
+			A: Adjacency matrix as np.array
 
-				X: Feature matrix as numpy array for input graph
+			X: Feature matrix as numpy array for input graph
 		'''
-		self.image = img
+		self.img_dims = img_dims
 		
 		G = nx.from_dict_of_lists(graph_dict)
 		adj_sparse = nx.adjacency_matrix(G)

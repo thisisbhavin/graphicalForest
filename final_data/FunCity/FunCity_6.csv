@@ -1,0 +1,43 @@
+xmin,ymin,xmax,ymax,Object,label
+123,172,553,172,Fun City - Phoenix MarketCity,1
+229,202,437,212,Mall - Chennai,1
+175,254,500,248,Citymax Hotels India Pvt Ltd.,0
+132,297,553,288,"Funcity , 3rd Floor, Phoenix Market Mall,",2
+300,313,375,327,No:142,2
+169,358,514,365,"Velachery Main Road, Velachery",2
+249,395,436,406,Chennai - 600042,2
+178,441,515,447,GSTN No: 33AACCC7765R1Z0,0
+225,476,463,486,Ph No: 044-61153473,0
+199,512,486,524,State Name: TAMILNADU,0
+246,547,447,566,SAC Code: 999699,0
+117,591,572,607,SAC Name : OTHER RECREATION AND,0
+172,632,515,651,AMUSEMENT SERVICE. n.e.c.,0
+212,672,477,689,Customer Name manju,0
+265,709,421,726,TAX INVOICE,0
+162,747,520,764,"Date: Tue, 19-Nov-2019 3:16 PM",6
+124,783,558,801,Bill No: TNCH1022369464 Trxld: 86649,4
+244,812,436,830,Cashier: Sasikala,0
+68,845,151,865,Product,7
+358,848,387,865,Qt.,0
+445,847,605,866,Price Amount,0
+72,930,260,949,Card: EC44D646,8
+77,972,247,991,Reload FC1500,0
+425,972,605,991,"1,271.1 1,500.0",0
+294,1036,618,1054,"Transaction Total Rs 1,500.00",10
+283,1076,348,1094,CGST,
+417,1077,461,1093,9,
+550,1077,617,1094,114.41,
+285,1117,350,1136,SGST,
+418,1117,463,1134,9,
+551,1117,618,1135,114.41,
+433,1158,622,1176,Non-Taxable 0.00,
+444,1199,620,1218,Total Tax 228.81,
+354,1241,625,1259,"Grand Total: Rs 1,500.00",
+566,1282,628,1301,Cash:,
+467,1323,630,1341,Tendered: 0.00,
+540,1365,631,1383,Change:,
+233,1409,492,1426,Have a Nice Day manju,
+182,1451,563,1470,The amount collected is inclusive of,
+138,1502,589,1511,value redemption items provided against,
+166,1540,560,1558,"tickets won by the customer, if any.",
+240,1579,493,1593,"Thank You, Visit Again",

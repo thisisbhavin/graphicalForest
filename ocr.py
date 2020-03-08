@@ -17,8 +17,8 @@ def load_image(img_filename):
         image_file.close()
     return content
 
-def ocr_processing(path):
-    data = load_image(path)
+def ocr_processing(data):
+    # data = load_image(path)
     image = types.Image(content=bytes(data))
     client = vision.ImageAnnotatorClient()
     textdetection_response = client.text_detection(image=image)
@@ -123,7 +123,7 @@ def get_sentence_bb1(cleaned_sentence_list, coord_array):
     # display_image_in_actual_size(cv2.cvtColor(im, cv2.COLOR_BGR2RGB), im.shape)
     return np.array(sentence_bb)
 
-def get_rotated_bb(textdetection_response,p):
+def get_rotated_bb(textdetection_response):
     img_width = textdetection_response.full_text_annotation.pages[0].width
     img_height = textdetection_response.full_text_annotation.pages[0].height
     img_dims = (img_height, img_width)
@@ -171,7 +171,7 @@ def get_rotated_bb(textdetection_response,p):
     coord_array = get_sentence_bb(word_list, bb_chars)
     w, _ = preprocess(textdetection_response.text_annotations[0].description)
     coord_array = get_sentence_bb1(w, coord_array)
-    return coord_array, word_list, bb_chars, char_list, w
+    return coord_array, word_list, bb_chars, char_list, w, img_dims
 
 def get_invoice_orientation(coord_for_slope):
     epsilon = 0.00001
@@ -235,24 +235,22 @@ def get_orientation(coord):
         else:
             return 180
 
-def ocr_using_google_api(image_path):
+def ocr_using_google_api(image):
     '''
     This function uses Google Vision API for Text Detection
-
     Args :
-        image_path : Input image path
-
+        image : Input image 
     Returns:
         pd.DataFrame having coordinates of each text box along with detected
         text inside it.
     '''
-    textdetection_response = ocr_processing(image_path)
-    # print(textdetection_response.text_annotations[0].description)
-    coord_array, word_list, _, _, w = get_rotated_bb(textdetection_response, image_path)
+    textdetection_response = ocr_processing(image)
+    print(textdetection_response.text_annotations[0].description)
+    coord_array, word_list, _, _, w, img_dims = get_rotated_bb(textdetection_response)
     coord_object = pd.DataFrame(coord_array[:,(0,2),:].reshape(-1,4), columns=['xmin','ymin','xmax','ymax'])
     coord_object['Object'] = w
 
-    return coord_object
+    return coord_object, img_dims
 
 
 
